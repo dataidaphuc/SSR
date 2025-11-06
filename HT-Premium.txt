@@ -11,14 +11,14 @@
 
 ---------------------------------------------------------------------------------
 
-local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/hu1a0hu9acc-sketch/Nhin-Con-Cac/refs/heads/main/Hu1a0Gui.lua"))()
+local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/dataidaphuc/S/refs/heads/main/Hu1a0Gui-V2.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 -- Tạo cửa sổ Fluent chính
 local Window = Fluent:CreateWindow({
     Title = "Hutao Hub [Premium] | Forsaken |",
-    SubTitle = "Version 5.2.4",
+    SubTitle = "Version 5.2.5",
     Search = true,
     Icon = "rbxassetid://121302760641013",
     TabWidth = 160,
