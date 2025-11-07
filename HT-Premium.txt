@@ -18,7 +18,7 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 -- Tạo cửa sổ Fluent chính
 local Window = Fluent:CreateWindow({
     Title = "Hutao Hub [Premium] | Forsaken |",
-    SubTitle = "Version 5.2.7",
+    SubTitle = "Version 5.2.8",
     Search = true,
     Icon = "rbxassetid://121302760641013",
     TabWidth = 160,
@@ -6755,7 +6755,33 @@ end)
     Tabs.Visual:AddSection("↳ Other")
 
 _G.ESPManager:RegisterType("Generator", Color3.fromRGB(255,255,255), function(obj)
-    return obj:IsA("Model") and obj.Name == "Generator" and not (obj:FindFirstChild("Progress") and obj.Progress.Value >= 100)
+    if not (obj and obj:IsA("Model") and obj.Name == "Generator") then
+        return false
+    end
+
+    local progress = obj:FindFirstChild("Progress", true)
+    if not progress or not progress:IsA("NumberValue") then
+        return false
+    end
+
+    -- Gắn kết một lần để theo dõi khi Progress.Value thay đổi
+    if not progress:GetAttribute("ESP_Watch") then
+        progress:SetAttribute("ESP_Watch", true)
+        progress:GetPropertyChangedSignal("Value"):Connect(function()
+            -- Nếu đạt 100% thì remove ESP ngay
+            if progress.Value >= 100 then
+                _G.ESPManager:Remove(obj)
+            else
+                -- Nếu ESP chưa có, tạo lại
+                if not _G.ESPManager.Objects[obj] then
+                    _G.ESPManager:_ScheduleCreate(obj, "Generator")
+                end
+            end
+        end)
+    end
+
+    -- Chỉ hiển thị khi chưa hoàn thành
+    return progress.Value < 100
 end, false)
 
 Tabs.Visual:AddToggle("ESPGeneratorToggle", {
