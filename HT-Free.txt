@@ -18,7 +18,7 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 -- Tạo cửa sổ Fluent chính
 local Window = Fluent:CreateWindow({
     Title = "Hutao Hub [Free] | Forsaken |",
-    SubTitle = "Version 5.2.9",
+    SubTitle = "Version 5.3.0",
     Search = true,
     Icon = "rbxassetid://121302760641013",
     TabWidth = 160,
@@ -4502,32 +4502,47 @@ Tabs.Event:AddToggle("AutoFarmSukkars", {
 
 -- Tabs.Custom
 
---// 🌌 Hệ Thống Tu Tiên (Fluent UI Paragraph)
--- Tự động tăng Tu Vi theo thời gian thực, lưu tiến trình, hiển thị Linh Khí %
+--// 🌌 Hệ Thống Tu Tiên (Fluent UI Paragraph v3)
+-- Mỗi cấp 3h, 9 tầng (Nhất → Cửu Giai), có tiến trình Đột Phá %
 
 local HttpService = game:GetService("HttpService")
 local SaveFile = "TuTienData.json"
 
--- Danh sách các cảnh giới và thời gian cần đạt (tích lũy)
+-- Danh sách cảnh giới (mỗi cấp = 3h = 10800s)
+-- Phàm Nhân không có tầng
 local Levels = {
-    {name = "Phàm Nhân", time = 0},
-    {name = "Luyện Khí", time = 15 * 60},
-    {name = "Trúc Cơ", time = 45 * 60},
-    {name = "Kim Đan", time = 105 * 60},
-    {name = "Nguyên Anh", time = 195 * 60},
-    {name = "Hóa Thần", time = 315 * 60},
-    {name = "Luyện Hư", time = 465 * 60},
-    {name = "Hợp Thể", time = 645 * 60},
-    {name = "Đại Thừa", time = 885 * 60},
-    {name = "Độ Kiếp", time = 1275 * 60},
-    {name = "Thánh Cảnh", time = 1695 * 60},
-    {name = "Thánh Vương", time = 2295 * 60},
-    {name = "Chí Tôn", time = 3195 * 60},
-    {name = "Chuẩn Đế", time = 4275 * 60},
-    {name = "Đại Đế", time = 5715 * 60},
+    {name = "Phàm Nhân", time = 0, hasStage = false},
+    {name = "Kết Đan", time = 10800, hasStage = true},
+    {name = "Luyện Khí", time = 21600, hasStage = true},
+    {name = "Trúc Cơ", time = 32400, hasStage = true},
+    {name = "Kim Đan", time = 43200, hasStage = true},
+    {name = "Nguyên Anh", time = 54000, hasStage = true},
+    {name = "Hóa Thần", time = 64800, hasStage = true},
+    {name = "Luyện Hư", time = 75600, hasStage = true},
+    {name = "Hợp Thể", time = 86400, hasStage = true},
+    {name = "Đại Thừa", time = 97200, hasStage = true},
+    {name = "Độ Kiếp", time = 108000, hasStage = true},
+    {name = "Thánh Cảnh", time = 118800, hasStage = true},
+    {name = "Thánh Vương", time = 129600, hasStage = true},
+    {name = "Chí Tôn", time = 140400, hasStage = true},
+    {name = "Chuẩn Đế", time = 151200, hasStage = true},
+    {name = "Đại Đế", time = 162000, hasStage = true},
 }
 
--- Đọc dữ liệu cũ nếu có
+-- Các tầng (mỗi tầng = 20 phút = 1200s)
+local Stages = {
+    "Nhất Giai",
+    "Nhị Giai",
+    "Tam Giai",
+    "Tứ Giai",
+    "Ngũ Giai",
+    "Lục Giai",
+    "Thất Giai",
+    "Bát Giai",
+    "Cửu Giai"
+}
+
+-- Đọc dữ liệu
 local function LoadData()
     if isfile and isfile(SaveFile) then
         local success, decoded = pcall(function()
@@ -4545,47 +4560,73 @@ local function SaveData(data)
     end
 end
 
--- Hàm tìm cấp hiện tại và % linh khí
-local function GetLevelFromTime(totalTime)
+-- Tính Tu Vi, Tầng, Linh Khí %, Đột Phá %
+local function GetProgress(totalTime)
     for i = #Levels, 1, -1 do
         if totalTime >= Levels[i].time then
             local current = Levels[i]
             local nextLevel = Levels[i + 1]
+
             if not nextLevel then
-                return current.name, 1
+                return current.name, (current.hasStage and "Cửu Giai" or nil), 1, 1
             end
-            local span = nextLevel.time - current.time
-            local progress = (totalTime - current.time) / span
-            return current.name, math.clamp(progress, 0, 1)
+
+            local levelDuration = 10800 -- 3h
+            local elapsedInLevel = totalTime - current.time
+            local percent = math.clamp(elapsedInLevel / levelDuration, 0, 1)
+
+            local stageName, breakthroughPercent
+            if current.hasStage then
+                local elapsedInStage = elapsedInLevel % 1200
+                local stageIndex = math.clamp(math.floor(elapsedInLevel / 1200) + 1, 1, #Stages)
+                stageName = Stages[stageIndex]
+                breakthroughPercent = math.clamp(elapsedInStage / 1200, 0, 1)
+            else
+                breakthroughPercent = 0
+            end
+
+            return current.name, stageName, percent, breakthroughPercent
         end
     end
-    return "Phàm Nhân", 0
+    return "Phàm Nhân", nil, 0, 0
 end
 
 -- Dữ liệu hiện tại
 local Data = LoadData()
 
--- Tạo đoạn hiển thị
+-- UI hiển thị
 local Paragraph = Tabs.Custom:AddParagraph({
     Title = "Thông Tin",
     Content = "Đang khởi động..."
 })
 
--- Cập nhật hiển thị mỗi giây
+-- Vòng cập nhật
 task.spawn(function()
     while task.wait(1) do
         Data.totalTime += 1
-        local level, percent = GetLevelFromTime(Data.totalTime)
-        Paragraph:SetDesc(string.format("Tu Vi: %s\nLinh Khí: %.1f%%", level, percent * 100))
-        
-        -- Lưu mỗi 10 giây để tránh lag
+        local level, stage, percent, breakP = GetProgress(Data.totalTime)
+
+        local content = string.format("Tu Vi: %s\n", level)
+        if stage then
+            content ..= string.format("Tầng: %s\n", stage)
+        end
+        content ..= string.format("Linh Khí: %.1f%%\n", percent * 100)
+
+        -- Nếu có tầng thì hiện thêm Đột Phá %
+        if stage then
+            content ..= string.format("Đột Phá: %.1f%%", breakP * 100)
+        end
+
+        Paragraph:SetDesc(content)
+
+        -- Lưu định kỳ
         if Data.totalTime % 10 == 0 then
             SaveData(Data)
         end
 
-        -- Nếu đạt Đại Đế thì dừng
+        -- Khi đạt Đại Đế full
         if level == "Đại Đế" and percent >= 1 then
-            Paragraph:SetDesc("Tu Vi: Đại Đế\nLinh Khí: 100%")
+            Paragraph:SetDesc("Tu Vi: Đại Đế\nTầng: Cửu Giai\nLinh Khí: 100%\nĐột Phá: 100%")
             break
         end
     end
